@@ -1,94 +1,55 @@
 const express = require("express");
-const uuid = require("uuid");
 const app = express();
-
-
 app.use(express.json());
 
-// 1. "Database" (Vaqtinchalik xotira)
-let users = [
-  {
-    id: "1",
-    title: "JavaScript Basics",
-    instructor: "Azimjon",
-    duration: 30
-  }
-];
+let courses = [];
+let nextId = 1;
 
-
-// Home Page
-app.get("/", (req, res) => {
-  res.send("<h1> Home Page </h1>");
-});
-
-// Barcha talabalarni olish
-app.get("/api/users/all", (req, res) => {
-  res.status(200).json(users);
-});
-
-// ID orqali bitta talabani olish
-app.get("/api/users/one/:userID", (req, res) => {
-  const idParam = req.params.userID;
-  const student = users.find(u => u.id === idParam);
-  
-  if (!student) {
-    return res.status(404).json({ message: "Talaba topilmadi" });
-  }
-  res.json(student);
-});
-
-// Yangi talaba qo'shish
-app.post("/api/users/one", (req, res) => {
+// POST /courses
+app.post("/courses", (req, res) => {
   const { title, instructor, duration } = req.body;
-  
-  if (!title || !instructor) {
+  if (!title || !instructor || !duration) {
     return res.status(400).json({ message: "Ma'lumotlar to'liq emas" });
   }
-
-  const newUser = {
-    id: uuid.v4(),
-    title,
-    instructor,
-    duration
-  };
-
-  users.unshift(newUser);
-  res.status(201).json(newUser);
+  const newCourse = { id: nextId++, title, instructor, duration };
+  courses.push(newCourse);
+  res.status(201).json(newCourse);
 });
 
-// Talaba ma'lumotini yangilash
-app.put("/api/users/:userID", (req, res) => {
-  const idParam = req.params.userID;
+// GET /courses
+app.get("/courses", (req, res) => {
+  res.json(courses);
+});
+
+// GET /courses/:id
+app.get("/courses/:id", (req, res) => {
+  const course = courses.find(c => c.id === parseInt(req.params.id));
+  if (!course) return res.status(404).json({ message: "Course topilmadi" });
+  res.json(course);
+});
+
+// PUT /courses/:id
+app.put("/courses/:id", (req, res) => {
+  const course = courses.find(c => c.id === parseInt(req.params.id));
+  if (!course) return res.status(404).json({ message: "Course topilmadi" });
+
   const { title, instructor, duration } = req.body;
-  
-  const student = users.find(u => u.id === idParam);
+  course.title = title || course.title;
+  course.instructor = instructor || course.instructor;
+  course.duration = duration || course.duration;
 
-  if (student) {
-    student.title = title || student.title;
-    student.instructor = instructor || student.instructor;
-    student.duration = duration || student.duration;
-    res.json(student);
+  res.json(course);
+});
+
+// DELETE /courses/:id
+app.delete("/courses/:id", (req, res) => {
+  const initialLength = courses.length;
+  courses = courses.filter(c => c.id !== parseInt(req.params.id));
+  if (courses.length < initialLength) {
+    res.json({ message: "Course o'chirildi" });
   } else {
-    res.status(404).json({ message: "Yangilash uchun talaba topilmadi" });
+    res.status(404).json({ message: "Course topilmadi" });
   }
 });
 
-// Talabani o'chirish
-app.delete("/api/users/one/:userID", (req, res) => {
-  const idParam = req.params.userID;
-  const initialLength = users.length;
-  
-  users = users.filter(u => u.id !== idParam);
-
-  if (users.length < initialLength) {
-    res.json({ message: "Student deleted" });
-  } else {
-    res.status(404).json({ message: "O'chirish uchun talaba topilmadi" });
-  }
-});
-
-// Serverni ishga tushirish
-const PORT = 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on: ${PORT}`);
-});
+app.listen(3000, () => console.log("Server running on port 3000"));
